@@ -1,3 +1,22 @@
+If I erase the "// Generate subsample index" part (last part in the code) in the cpp code, 
+it prints "iteration", so it seems that the iteration works, but I got 
+
+"Error in cqr_lasso(X, y, K = 9, n_sampler = 1500, n_burn = 100, thin = 50) : 
+  Mat::row(): index out of bounds"
+
+But, i can't find any error in the code. 
+
+
+And, if I put the "// Generate subsample index" in the cpp code, 
+R just terminated and said "R encountered a fatal error. The session was terminated."
+
+I think the problem in the function "generate_subsample_idx" that I made. 
+
+
+
+
+
+(Note)
 I tried to save the results in the following "result" list in R, and return the "result" . 
 
 =========  R code for the saving and returning   ========
@@ -32,5 +51,3 @@ List result = List::create(
  return result;
  ====================================================== 
 
-
-But, R terminated 
