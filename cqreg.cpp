@@ -221,18 +221,17 @@ List cqr_lasso(const arma::mat& x, const arma::vec& y, int K = 9, int n_sampler 
   }
 
   // Generate subsample index (I have an error for this part)
-//  arma::uvec subsample_idx = generate_subsample_idx(n_sampler, n_burn, thin);
+  arma::uvec subsample_idx = generate_subsample_idx(n_sampler, n_burn, thin);
   
-//  List result = List::create(
- //   Named("beta") = beta_p.rows(subsample_idx),
- //   Named("tau") = tau_p.elem(subsample_idx),
- //   Named("eta2") = eta2_p.elem(subsample_idx),
- //   Named("pi") = pi_p.rows(subsample_idx),
-  //  Named("b") = b_p.rows(subsample_idx),
- //   Named("dic") = dic_p.elem(subsample_idx)
-//  );
+ List result = List::create(
+    Named("beta") = beta_p.rows(subsample_idx),
+    Named("tau") = tau_p.elem(subsample_idx),
+    Named("eta2") = eta2_p.elem(subsample_idx),
+   Named("pi") = pi_p.rows(subsample_idx),
+   Named("b") = b_p.rows(subsample_idx)
+  );
   
- // return result;
+ return result;
   
   
 }
