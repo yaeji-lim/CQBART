@@ -1,2 +1,2 @@
 # CQBART
-R code for "Composite quantile BART"
+Rcpp code for "Composite quantile regression"  & "Composite quantile BART"
