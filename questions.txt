@@ -1,0 +1,36 @@
+I tried to save the results in the following "result" list in R, and return the "result" . 
+
+=========  R code for the saving and returning   ========
+
+temp = seq(1,n.sampler-n.burn, by=thin)
+    result = list(beta = beta.p[-(1:n.burn),][temp,],
+      tau = tau.p[-(1:n.burn)][temp],
+      eta2 = eta2.p[-(1:n.burn)][temp],
+      tz = tz.p[-(1:n.burn),][temp,],
+      pi = pi.p[-(1:n.burn),][temp,],
+      zi = zi.p[-(1:n.burn),][temp,],
+      b = b.p[-(1:n.burn),][temp,],
+      dic = dic.p[-(1:n.burn)][temp])
+
+======================================================
+
+So, I wrote the cpp code as 
+
+====== cpp code for the saving and returning ========
+  // Generate subsample index
+  arma::uvec subsample_idx = generate_subsample_idx(n_sampler, n_burn, thin);
+
+List result = List::create(
+   Named("beta") = beta_p.rows(subsample_idx),
+   Named("tau") = tau_p.elem(subsample_idx),
+   Named("eta2") = eta2_p.elem(subsample_idx),
+   Named("pi") = pi_p.rows(subsample_idx),
+   Named("b") = b_p.rows(subsample_idx),
+   Named("dic") = dic_p.elem(subsample_idx)
+  );
+  
+ return result;
+ ====================================================== 
+
+
+But, R terminated 
