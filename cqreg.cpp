@@ -1,7 +1,7 @@
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////// Rcpp code for the "composte quantile regression  /////////////////////////////////////////
-////// I have an error in "Generate subsample index" part which in the last part in "cqr_lasso" function /////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// [[Rcpp::depends(RcppArmadillo)]]
 #include <RcppArmadillo.h>
 #include <cmath>
 #include <algorithm>
@@ -54,7 +54,7 @@ int rmultinom_custom2(const arma::vec& prob) {
 }
 
 
-
+// [[Rcpp::export]]
 arma::uvec generate_subsample_idx(int n_sampler, int n_burn, int thin) {
   std::vector<int> temp;
   for (int i = 1; i <= (n_sampler - n_burn); i += thin) {
@@ -69,7 +69,7 @@ arma::uvec generate_subsample_idx(int n_sampler, int n_burn, int thin) {
 
 
 // [[Rcpp::export]]
-List cqr_lasso(const arma::mat& x, const arma::vec& y, int K = 9, int n_sampler = 13000, int n_burn = 3000, int thin = 20) {
+Rcpp::List cqr_lasso(const arma::mat& x, const arma::vec& y, int K = 9, int n_sampler = 13000, int n_burn = 3000, int thin = 20) {
   // Initialize variables
   vec theta = linspace(1.0, K, K) / (K + 1.0);
   int n = x.n_rows;
@@ -77,13 +77,13 @@ List cqr_lasso(const arma::mat& x, const arma::vec& y, int K = 9, int n_sampler 
   vec xi1 = (1 - 2 * theta) / (theta % (1 - theta));
   vec xi2 = sqrt(2 / (theta % (1 - theta)));
   vec eps = y - x * solve(x.t() * x, x.t() * y);
-  
+
   // Priors
   double a = 1e-1;
   double b = 1e-1;
   double c = 1e-1;
   double d = 1e2;
-  
+
   // Initialization
   vec alpha_c = ones(K);
   vec pi_init = alpha_c / sum(alpha_c);
@@ -98,7 +98,7 @@ List cqr_lasso(const arma::mat& x, const arma::vec& y, int K = 9, int n_sampler 
   double eta2_c = 1;
   vec b_k = quantile(eps, theta);
   vec b_c = b_k.elem(conv_to<uvec>::from(zi_c - 1));
-  
+
 
   // Iteration
   mat zi_p = zeros(n_sampler, n);
@@ -109,42 +109,42 @@ List cqr_lasso(const arma::mat& x, const arma::vec& y, int K = 9, int n_sampler 
   vec tau_p = zeros(n_sampler);
   vec eta2_p = zeros(n_sampler);
  // vec dic_p = zeros(n_sampler);
-  
+
   for (int iter = 0; iter < n_sampler; ++iter) {
     if (iter % 1000 == 0) {
       Rcpp::Rcout << "This is step " << iter << std::endl;
     }
-    
+
     // Full conditional for tz (nu)
     vec temp_lambda = pow(xi1_c,2) * tau_c / pow(xi2_c,2) + 2 * tau_c;
     vec temp_nu = sqrt(temp_lambda % pow(xi2_c,2) / (tau_c * pow(y - b_c - x * beta_c,2)));
     for (int i = 0; i < n; ++i) {
       tz_c(i) = 1 / rinvGauss(temp_lambda(i), temp_nu(i));
     }
-    
+
     // Full conditional for s
     temp_lambda.fill(eta2_c);
     for (int j = 0; j < p; ++j) {
       s_c(j) = 1 / rinvGauss(temp_lambda(j), sqrt(temp_lambda(j) / pow(beta_c(j),2)));
     }
-    
+
     // Full conditional for beta
     for (int k = 0; k < p; ++k) {
       double temp_var = 1 / (sum(pow(x.col(k),2) * tau_c / (pow(xi2_c,2) % tz_c)) + 1 / s_c(k));
       double temp_mean = sum(x.col(k) % (y - b_c - xi1_c % tz_c - x * beta_c + x.col(k) * beta_c(k)) * tau_c / (pow(xi2_c,2) % tz_c)) * temp_var;
       beta_c(k) = R::rnorm(temp_mean, sqrt(temp_var));
     }
-    
+
     // Full conditional for tau
     double temp_shape = a + 1.5 * n;
     double temp_rate = sum(pow(y - b_c - x * beta_c - xi1_c % tz_c,2) / (2 * pow(xi2_c,2) % tz_c) + tz_c) + b;
     tau_c = R::rgamma(temp_shape, 1 / temp_rate);
-    
+
     // Full conditional for eta2
     temp_shape = p + c;
     temp_rate = sum(s_c) / 2 + d;
     eta2_c = 1; // R::rgamma(temp_shape, 1 / temp_rate);
-    
+
     // Full conditional for zi (c)
     for (int i = 0; i < n; ++i) {
       vec temp_power = pow(y(i) - b_k - sum(x.row(i) * beta_c) - xi1 * tz_c(i),2) * tau_c / (pow(xi2,2) * tz_c(i));
@@ -153,64 +153,64 @@ List cqr_lasso(const arma::mat& x, const arma::vec& y, int K = 9, int n_sampler 
       zi_c(i) =  rmultinom_custom2(norm_alpha) +1 ;
     }
 
-    
+
     // Debug print for checking zi_c
   //  Rcpp::Rcout << "zi_c at iteration " << iter << ": " << zi_c.t() << std::endl;
-    
+
     // Debug print for checking zi_c
  //   Rcpp::Rcout << "xi1_c at iteration " << iter << ": " << xi1_c.t() << std::endl;
-    
+
     // Debug print for checking zi_c
   //  Rcpp::Rcout << "xi2_c at iteration " << iter << ": " << xi2_c.t() << std::endl;
-    
-    
-    
+
+
+
      xi1_c = xi1.elem(conv_to<uvec>::from(zi_c -1 ));
      xi2_c = xi2.elem(conv_to<uvec>::from(zi_c -1 ));
 
- 
- // Debug print for checking zi_c
+
+// Debug print for checking zi_c
 // Rcpp::Rcout << "xi1_c at iteration " << iter << ": " << xi1_c.t() << std::endl;
 // Rcpp::Rcout << "xi2_c at iteration " << iter << ": " << xi2_c.t() << std::endl;
- 
+
     // Full conditional for pi (omega)
     vec n_c(K, fill::zeros);
-  
+
     for (int i = 0; i < n; ++i) {
       ++n_c(zi_c(i) -1 );  // Decrement zi_c(i) by 1 to match the zero-based indexing of n_c
     }
 
     pi_c = rdirichlet(K, n_c + alpha_c);
 
-    
+
     // Full conditional for b
     //double dic_c = 0;
     for (int k = 0; k < K; ++k) {
       uvec which_k = find(zi_c == (k +1 ));
-      
-      
+
+
       if (!which_k.is_empty()) {
         vec bc = y.elem(which_k) - x.rows(which_k) * beta_c - xi1_c.elem(which_k) % tz_c.elem(which_k);
         vec sc = tau_c / (pow(xi2_c.elem(which_k),2) % tz_c.elem(which_k));
         double mean = sum(bc % sc) / sum(sc);
         double sd = 1 / sqrt(sum(sc));
-        
+
         // Debug: print the mean and sd before generating b_k
       //  Rcpp::Rcout << "k = " << k << ", mean = " << mean << ", sd = " << sd << std::endl;
-        
+
         b_k(k) = R::rnorm(mean, sd);
         vec uu = y.elem(which_k) - b_k(k) - x.rows(which_k) * beta_c;
-        
+
         uvec pos_indices = find(uu >= 0);
         uu.elem(pos_indices) = theta(k) * uu.elem(pos_indices);
-        
+
         uvec neg_indices = find(uu < 0);
         uu.elem(neg_indices) = (theta(k) - 1) * uu.elem(neg_indices);
-        
+
       }
     }
     b_c = b_k.elem(conv_to<uvec>::from(zi_c  -1));
-    
+
     // Store samples
     zi_p.row(iter) = conv_to<rowvec>::from(zi_c);
     beta_p.row(iter) = beta_c.t();
@@ -220,18 +220,22 @@ List cqr_lasso(const arma::mat& x, const arma::vec& y, int K = 9, int n_sampler 
     b_p.row(iter) = b_k.t();
   }
 
-  // Generate subsample index (I have an error for this part)
+  // Generate subsample index 
   arma::uvec subsample_idx = generate_subsample_idx(n_sampler, n_burn, thin);
   
- List result = List::create(
-    Named("beta") = beta_p.rows(subsample_idx),
-    Named("tau") = tau_p.elem(subsample_idx),
-    Named("eta2") = eta2_p.elem(subsample_idx),
-   Named("pi") = pi_p.rows(subsample_idx),
-   Named("b") = b_p.rows(subsample_idx)
-  );
+  arma::mat beta_save = beta_p.rows(subsample_idx);
+  arma::vec tau_save = tau_p.elem(subsample_idx);
+  arma::vec eta2_save = eta2_p.elem(subsample_idx);
+  arma::mat pi_save = pi_p.rows(subsample_idx);
+  arma::mat b_save = b_p.rows(subsample_idx);
   
+  List result;
+  result["beta"] = beta_save;
+  result["tau"] = tau_save;
+  result["eta2"] = eta2_save;
+  result["pi"] = pi_save;
+  result["b"] = b_save;
  return result;
-  
-  
+
+
 }
